@@ -157,4 +157,6 @@ float rp_gen_limit_freq(float freq, float gen_type);
 
 void dir_gen_set(int ch, int param, int value);
 
+void write_cal_eeprom( void);
+
 #endif /*  __MAIN_H */

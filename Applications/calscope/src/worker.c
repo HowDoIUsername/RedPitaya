@@ -586,7 +586,8 @@ void *rp_osc_worker_thread(void *args)
 	    // DC offset calibration (inputs)
 	    if (round(curr_params[DC_CAL].value) != cal_old) {  // When associated  client button is clicked...
                 rp_calib_params->fe_ch1_dc_offs=-rp_osc_mean_dc_offset(&ch1_meas);
-                rp_calib_params->fe_ch2_dc_offs=-rp_osc_mean_dc_offset(&ch2_meas);	
+                rp_calib_params->fe_ch2_dc_offs=-rp_osc_mean_dc_offset(&ch2_meas);
+		write_cal_eeprom();
             } 
             
             cal_old=round(curr_params[DC_CAL].value);
@@ -618,7 +619,7 @@ void *rp_osc_worker_thread(void *args)
 	      
 	      // New calibration constant
               rp_calib_params->be_ch1_dc_offs=-dc_offs_in_DAC_counts;
-	      
+	      write_cal_eeprom();
           
 	      dir_gen_set(0, 0, 0x11);	     // Enable signal on ch1
 	      
@@ -668,6 +669,7 @@ void *rp_osc_worker_thread(void *args)
 	      // New calibration constant
               rp_calib_params->be_ch2_dc_offs=-dc_offs_in_DAC_counts;
 	      
+	      write_cal_eeprom();
           
 	      dir_gen_set(1, 0, 0x11);	     // Enable signal on ch1
 	      

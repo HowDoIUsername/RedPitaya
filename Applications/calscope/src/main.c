@@ -1054,6 +1054,15 @@ void dir_gen_set(int ch, int param, int value)
 }
 
 
+void write_cal_eeprom( void)
+{
+  if(rp_write_calib_params(&rp_main_calib_params) < 0) {
+        fprintf(stderr, "rp_write_calib_params() failed. \n");
+   }
+}
+
+
+
 float rp_gen_limit_freq(float freq, float gen_type)
 {
     int type = (int)gen_type;
@@ -1082,3 +1091,6 @@ float rp_gen_limit_freq(float freq, float gen_type)
 
     return freq;
 }
+
+
+

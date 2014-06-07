@@ -39,7 +39,7 @@ typedef struct rp_osc_calib_params_s {
 /** @} */
 
 int rp_read_calib_params(rp_calib_params_t *calib_params);
-
+int rp_write_calib_params(rp_calib_params_t *calib_params);
 int rp_default_calib_params(rp_calib_params_t *calib_params);
 
 #endif //__CALIB_H

@@ -82,6 +82,64 @@ int rp_read_calib_params(rp_calib_params_t *calib_params)
 
 /*----------------------------------------------------------------------------*/
 /**
+ * @brief Write calibration parameters to EEPROM device.
+ *
+ * Function writes calibration parameters to EEPROM device. 
+ * Communication to the EEPROM device is taken place through
+ * appropriate system driver accessed through the file system device
+ * /sys/bus/i2c/devices/0-0050/eeprom.
+ *
+ * @param[out]   calib_params  Pointer to source buffer.
+ * @retval       0 Success
+ * @retval      -1 Failure, error message is put on stderr device
+ *
+ */
+int rp_write_calib_params(rp_calib_params_t *calib_params)
+{
+    FILE   *fp;
+    size_t  size;
+
+    /* sanity check */
+    if(calib_params == NULL) {
+        fprintf(stderr, "rp_write_calib_params(): input structure "
+                "not initialized\n");
+        return -1;
+    }
+
+    /* open eeprom device */
+    fp=fopen(eeprom_device, "rw+");
+    if(fp == NULL) {
+        fprintf(stderr, "rp_write_calib_params(): Can not open EEPROM device: "
+                " %s\n", strerror(errno));
+	fclose(fp);
+       return -1;
+    }
+
+    /* ...and seek to the appropriate storage offset */
+    if(fseek(fp, eeprom_calib_off, SEEK_SET) < 0) {
+        fclose(fp);
+        fprintf(stderr, "rp_write_calib_params(): fseek() failed: %s\n", 
+                strerror(errno));
+        return -1;
+    }
+
+    /* write data to eeprom component from specified buffer */
+    size=fwrite(calib_params, sizeof(char), sizeof(rp_calib_params_t), fp);
+    if(size != sizeof(rp_calib_params_t)) {
+        fclose(fp);
+        fprintf(stderr, "rp_write_calib_params(): fwrite() failed, "
+                "returned bytes: %d (should be :%d)\n", size, 
+                sizeof(rp_calib_params_t));
+        return -1;
+    }
+    fclose(fp);
+
+    return 0;
+}
+
+
+/*----------------------------------------------------------------------------*/
+/**
  * Initialize calibration parameters to default values.
  *
  * @param[out] calib_params  Pointer to target buffer to be initialized.
