@@ -233,7 +233,13 @@ void *rp_osc_worker_thread(void *args)
     int                   params_dirty = 0;
     
     int cal_old=0;
+    int calout1_old=0;
+    int calout2_old=0;    
     int trc_old=0;
+    
+    int calout1_state=0;
+    int calout2_state=0;
+      
 
     /* Long acquisition special function */
     int long_acq = 0; /* long_acq if acq_time > 1 [s] */
@@ -576,14 +582,124 @@ void *rp_osc_worker_thread(void *args)
             rp_osc_meas_avg_amp(&ch2_meas, OSC_FPGA_SIG_LEN);
             
 	    
-	    // DC offset calibration
-	    if (round(curr_params[DC_CAL].value) != cal_old) {
+	   
+	    // DC offset calibration (inputs)
+	    if (round(curr_params[DC_CAL].value) != cal_old) {  // When associated  client button is clicked...
                 rp_calib_params->fe_ch1_dc_offs=-rp_osc_mean_dc_offset(&ch1_meas);
                 rp_calib_params->fe_ch2_dc_offs=-rp_osc_mean_dc_offset(&ch2_meas);	
             } 
             
             cal_old=round(curr_params[DC_CAL].value);
 	    trc_old=round(curr_params[REQ_TRC].value);
+	    
+	    
+	    
+	    // DC offset calibration (output1)
+	    if (round(curr_params[DC_CALOUT1].value) != calout1_old) { // When associated client button is clicked...
+             calout1_state=1;
+	    }
+             
+	      
+	    // Wait next acquisition when average ready
+            if (calout1_state==2)
+	    {
+	      float dc_offs_in_volts;
+	      int32_t dc_offs_in_DAC_counts;
+	      float dac_fullscl_v;
+	      
+	      // Calculate DAC DC offset in volts (Assumption: ADC offset calibrated before output calibration and out1 connected on in1)	      
+	      dc_offs_in_volts=((float)(rp_osc_mean_dc_offset(&ch1_meas)+rp_calib_params->fe_ch1_dc_offs)*ch1_max_adc_v)/ (float)(1<<(c_osc_fpga_adc_bits-1));
+	      
+	      // DAC full scale voltage
+	      dac_fullscl_v=((float)rp_calib_params->be_ch1_fs)/(float)((uint64_t)1<<32) * 100.0;
+	      
+	      // DAC offset in DAC counts
+	      dc_offs_in_DAC_counts=round(dc_offs_in_volts/dac_fullscl_v*8191);
+	      
+	      // New calibration constant
+              rp_calib_params->be_ch1_dc_offs=-dc_offs_in_DAC_counts;
+	      
+          
+	      dir_gen_set(0, 0, 0x11);	     // Enable signal on ch1
+	      
+	      // Calibration completed
+	      
+	      calout1_state=0;  // Reset calibration state     	      
+	      
+	      rp_update_main_params(curr_params); // Update signal generator with new calibration constants		 	      
+	      
+	    }
+	    
+	    // Before measuring offset disable signal generation  
+	    if (calout1_state==1)
+	    {
+   	      dir_gen_set(0, 0, 0xc0);	     // Disable signal on ch1 
+	      dir_gen_set(0, 1, 0x0);       // Set scale to zero
+	      dir_gen_set(0, 2, 0x0);       // Set offset to zero
+	      
+	      // Now DAC DC offset can be measured on input channels
+	      calout1_state=2;
+	    
+	    }            
+
+	    
+	    // DC offset calibration (output2)
+	    if (round(curr_params[DC_CALOUT2].value) != calout2_old) { // When associated client button is clicked...
+             calout2_state=1;
+	    }
+             
+	      
+	    // Wait next acquisition when average ready
+            if (calout2_state==2)
+	    {
+	      float dc_offs_in_volts;
+	      int32_t dc_offs_in_DAC_counts;
+	      float dac_fullscl_v;
+	      
+	      // Calculate DAC DC offset in volts (Assumption: ADC offset calibrated before output calibration and out1 connected on in1)	      
+	      dc_offs_in_volts=((float)(rp_osc_mean_dc_offset(&ch2_meas)+rp_calib_params->fe_ch2_dc_offs)*ch2_max_adc_v)/ (float)(1<<(c_osc_fpga_adc_bits-1));
+	      
+	      // DAC full scale voltage
+	      dac_fullscl_v=((float)rp_calib_params->be_ch2_fs)/(float)((uint64_t)1<<32) * 100.0;
+	      
+	      // DAC offset in DAC counts
+	      dc_offs_in_DAC_counts=round(dc_offs_in_volts/dac_fullscl_v*8191);
+	      
+	      // New calibration constant
+              rp_calib_params->be_ch2_dc_offs=-dc_offs_in_DAC_counts;
+	      
+          
+	      dir_gen_set(1, 0, 0x11);	     // Enable signal on ch1
+	      
+	      // Calibration completed
+	      
+	      calout2_state=0;  // Reset calibration state     	      
+	      
+	      rp_update_main_params(curr_params); // Update signal generator with new calibration constants		 	      
+	      
+	    }
+	    
+	    // Before measuring offset disable signal generation  
+	    if (calout2_state==1)
+	    {
+   	      dir_gen_set(1, 0, 0xc0);	     // Disable signal on ch1 
+	      dir_gen_set(1, 1, 0x0);       // Set scale to zero
+	      dir_gen_set(1, 2, 0x0);       // Set offset to zero
+	      
+	      // Now DAC DC offset can be measured on input channels
+	      calout2_state=2;
+	    
+	    } 	    
+      
+      	    
+      	    // Remember old values to detect button signals toggling
+      	    
+	    calout1_old=round(curr_params[DC_CALOUT1].value);
+	    calout2_old=round(curr_params[DC_CALOUT2].value);              
+              
+	   
+	    
+	    
 	    
             rp_osc_meas_period(&ch1_meas, &ch2_meas, &rp_fpga_cha_signal[0], 
                                &rp_fpga_chb_signal[0], dec_factor);
