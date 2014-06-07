@@ -1,6 +1,6 @@
 <!-- $Id$
  *
- * Red Pitaya Generator & Oscilloscope client.
+ * Red Pitaya Generator & Oscilloscope (with calibration) client.
  *
  * Author: Dakus <info@eskala.eu>
  *         
@@ -16,7 +16,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Generator & Oscilloscope</title>
+  <title>CalGenScope: Calibrated Generator & Oscilloscope</title>
   <link href="../assets/bootstrap-3.0.0/css/bootstrap.css" rel="stylesheet" type="text/css">
   <link href="../assets/style.css?6" rel="stylesheet" type="text/css">
   <script src="../assets/bootstrap-3.0.0/js/jquery.js"></script>
@@ -30,7 +30,7 @@
   
   // Settings which can be modified
    
-  var app_id = 'scope+gen';  
+  var app_id = 'calgenscope';  
   var root_url = '';
   //var root_url = 'http://10.0.1.221';      // Test local
   //var root_url = 'http://192.168.53.133';  // Test remote and local
@@ -70,6 +70,14 @@
   };
   
   // Settings which should not be modified
+  
+  var dc_cal_butt=0;   // toggled when DC cal button clicked
+  var dc_calout1_butt=0;   // toggled when DC cal button clicked for out 1
+  var dc_calout2_butt=0;   // toggled when DC cal button clicked for out 2
+  var req_trc_butt=0;  // toggled when Dowload trace button clicked
+
+  var dl_state=0;      // Download state variable
+  
   
   var update_timer = null;
   var zoompan_timer = null;
@@ -848,7 +856,31 @@
     user_editing = false;
   }
   
+  
+  function startDownload()  
+  {  
+     var url='/tmp/traces.csv';  
+  
+     win=window.open(url,'Download','width=10, height=10');    
+     
+     
+  }  
+
+  
+  
   function loadParams(orig_params) {
+     
+    if (dl_state>=3) { // Give RP some cycles to prepare data...
+    dl_state=0;        // reset state
+    startDownload();   // Download file
+    }
+   
+    if (dl_state>0)    // Count # RP response after Trace Download request
+    {
+     dl_state=dl_state+1;
+    }
+  
+  
     if(! $.isPlainObject(orig_params)) {
       return;
     }
@@ -951,6 +983,34 @@
     return false;
   }
   
+  
+  
+  function requestTrace() {
+       dl_state=1;                   // Remember the issued Trace download request 
+       req_trc_butt=1-req_trc_butt;  
+       sendParams(true,true);        // Propagate parameter to RP
+      
+  }
+
+  
+  function calibrate() {
+     dc_cal_butt=1-dc_cal_butt;
+     sendParams(true,true);          // Propagate parameter to RP
+  }
+ 
+  function calout1() {
+     dc_calout1_butt=1-dc_calout1_butt;
+     sendParams(true,true);          // Propagate parameter to RP
+  }
+  
+    function calout2() {
+     dc_calout2_butt=1-dc_calout2_butt;
+     sendParams(true,true);          // Propagate parameter to RP
+  }
+ 
+ 
+ 
+  
   function sendParams(refresh_data, force_send, single_btn) {
     if(sending || (force_send !== true && !isParamChanged())) {
       send_que = sending;
@@ -961,6 +1021,11 @@
     sending = true;
     params.local.single_btn = (single_btn === true ? 1 : 0);
     use_long_timeout = !!auto_flag;
+  
+    params.local.req_trc=req_trc_butt;
+    params.local.dc_cal=dc_cal_butt;
+    params.local.dc_calout1=dc_calout1_butt;
+    params.local.dc_calout2=dc_calout2_butt;    
   
     $.ajax({
       type: 'POST',
@@ -1794,7 +1859,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">Generator & Oscilloscope</h2>
+      <h2 class="page-title">CalGenScope: Calibrated Generator & Oscilloscope</h2>
     </div>
   </div>
   <div class="container">
@@ -2028,6 +2093,10 @@
                 <div class="col-xs-3 txt-right">Period:</div>
                 <div class="col-xs-3" id="info_ch2_period">-<span class="unit">s</span></div>
               </div>
+              <div class="row">
+               <div class="col-xs-4 txt-right"></div>
+                <button class="btn btn-primary btn-lg" onclick="requestTrace()">Download data traces</button>
+	      </div>              
             </div>
           </div>
         </div>
@@ -2080,6 +2149,12 @@
                     </select>
                   </div>
                 </div>
+                <div class="form-group">
+                  <label for="calbutt" class="col-xs-4 col-sm-6 control-label"></label>
+                  <div class="col-xs-4 col-sm-5">
+                  <button class="btn btn-primary btn-lg" onclick="calibrate()" title="Disconnect signals on IN1 and IN2 before calibration.">Cal DC offset on inputs</button> 
+                  </div>
+                </div>                
               </form>
             </div>
           </div>
@@ -2174,6 +2249,21 @@
                   </div>
                 </div>
               </form>
+               <form class="form-horizontal" role="form" onsubmit="return false;">
+                <div class="row">                
+		 <div class="form-group">
+                  <label for="calbutt2" class="col-xs-4 col-sm-6 control-label"></label>
+                  <div class="col-xs-4 col-sm-5">                  
+                  </div>
+                </div> 
+                <div class="form-group">
+                  <label for="calbutt3" class="col-xs-4 col-sm-6 control-label"></label>
+                  <div class="col-xs-8 col-md-12 col-lg-8 col-sm-offset-4 col-md-offset-0 col-lg-offset-4">
+                  <button class="btn btn-primary btn-lg" onclick="calout1()" title="Make sure IN1 calibrated, connect OUT1 to IN1, then start output calibration.">Calibrate DC offset (OUT1)</button> 
+                  </div>
+                </div>  
+                </div>
+              </form>             
               <form class="form-horizontal" role="form" onsubmit="return false;">
                 <div class="checkbox" style="padding-top: 15px; padding-bottom: 12px;">
                   <label class="group-label">
@@ -2251,7 +2341,22 @@
                     <button id="gen_ch2_upload" class="btn btn-primary" onclick="return showUploadForm(2)">
                       <span class="glyphicon glyphicon-upload"></span> File upload
                     </button>
+                  </div>                
+                </div>
+              </form>         
+               <form class="form-horizontal" role="form" onsubmit="return false;">
+                <div class="row">                
+		 <div class="form-group">
+                  <label for="calbutt4" class="col-xs-4 col-sm-6 control-label"></label>
+                  <div class="col-xs-4 col-sm-5">                  
                   </div>
+                </div> 
+                <div class="form-group">
+                  <label for="calbutt5" class="col-xs-4 col-sm-6 control-label"></label>
+                  <div class="col-xs-8 col-md-12 col-lg-8 col-sm-offset-4 col-md-offset-0 col-lg-offset-4">
+                  <button class="btn btn-primary btn-lg" onclick="calout2()"  title="Make sure IN1 calibrated, connect OUT2 to IN2, then start output calibration.">Calibrate DC offset (OUT2)</button> 
+                  </div>
+                </div>  
                 </div>
               </form>
             </div>
@@ -2314,7 +2419,7 @@
         <div class="modal-footer" style="margin-top: 0;">
           <button type="button" class="btn btn-default btn-close-modal">Close</button>
           <button type="button" class="btn btn-primary" onclick="startUpload()">Upload</button>
-        </div>
+        </div>            
       </div>
     </div>
   </div>  
