@@ -158,7 +158,14 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
         "scale_ch1", 0, 0, 1, -1000, 1000 },
     { /* scale_ch2 - Jumper & probe attenuation dependent Y scaling factor for Channel 2 */
         "scale_ch2", 0, 0, 1, -1000, 1000 },
-
+    { /* dc_cal - DC offset calibration button (toggled) */
+        "dc_cal", 0, 1, 0, 0, 1 },	
+    { /* req_trc - Data trace download button (toggled) */
+        "req_trc", 0, 1, 0, 0, 1 }, 
+    { /* dc_calout1 - DC offset calibration button for out 1 (toggled) */
+        "dc_calout1", 0, 1, 0, 0, 1 },		
+    { /* dc_calout2 - DC offset calibration button for out 2 (toggled) */
+        "dc_calout2", 0, 1, 0, 0, 1 },			
     /* Arbitrary Waveform Generator parameters from here on */
 
     { /* gen_trig_mod_ch1 - Selects the trigger mode for channel 1:
@@ -217,10 +224,6 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
        *     2 - Refresh Channel 2
        */
         "gen_awg_refresh",   0, 0, 0, 0, 2 },
-    { /* dc_cal - DC offset calibration button (toggled) */
-        "dc_cal", 0, 1, 0, 0, 1 },	
-    { /* req_trc - Data trace download button (toggled) */
-        "req_trc", 0, 1, 0, 0, 1 },    
     { /* Must be last! */
         NULL, 0.0, -1, -1, 0.0, 0.0 }     
 };
@@ -261,7 +264,7 @@ int rp_app_init(void)
         return -1;
     }
 
-    rp_set_params(&rp_main_params[0], PARAMS_NUM);
+    rp_set_params(&rp_main_params[0], PARAMS_NUM ,0);
 
 
     return 0;
@@ -530,9 +533,9 @@ void transform_from_iface_units(rp_app_params_t *p)
     p[GEN_DC_NORM_1].value = p[GEN_DC_OFFS_1].value / scale1;
     p[GEN_DC_NORM_2].value = p[GEN_DC_OFFS_2].value / scale2;
 }
-
-int rp_set_params(rp_app_params_t *p, int len)
-{
+                                      
+int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
+{                            // This "internal_flag" tells who is requesting param. set (0 client, 1 app. on server)
     int i;
     int fpga_update = 1;
     int params_change = 0;
@@ -776,7 +779,7 @@ int rp_set_params(rp_app_params_t *p, int len)
         }
     }
 
-    if(awg_params_change) {
+    if(awg_params_change || (internal_flag==1)) {
 
         /* Correct frequencies if needed */
         rp_main_params[GEN_SIG_FREQ_CH1].value = 
@@ -1017,7 +1020,7 @@ int rp_update_main_params(rp_app_params_t *params)
     }
     pthread_mutex_unlock(&rp_main_params_mutex);
     params_init = 0;
-    rp_set_params(&rp_main_params[0], PARAMS_NUM);
+    rp_set_params(&rp_main_params[0], PARAMS_NUM, 1);
 
     return 0;
 }
@@ -1042,6 +1045,14 @@ int rp_update_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas)
     pthread_mutex_unlock(&rp_main_params_mutex);
     return 0;
 }
+
+// This function enables direct signal generator FPGA register access from worker.c
+
+void dir_gen_set(int ch, int param, int value)
+{ 
+  dir_gen_fpga_set(ch, param, value); 
+}
+
 
 float rp_gen_limit_freq(float freq, float gen_type)
 {

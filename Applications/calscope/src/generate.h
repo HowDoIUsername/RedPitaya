@@ -45,4 +45,6 @@ int generate_exit(void);
 
 int generate_update(rp_app_params_t *params);
 
+void dir_gen_fpga_set(uint32_t ch, int param, uint32_t value); 
+
 #endif // __GENERATE_H

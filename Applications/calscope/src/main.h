@@ -45,7 +45,7 @@ typedef struct rp_osc_meas_res_s {
 
 /* Parameters indexes - these defines should be in the same order as 
  * rp_app_params_t structure defined in main.c */
-#define PARAMS_NUM        59
+#define PARAMS_NUM        61
 #define MIN_GUI_PARAM     0
 #define MAX_GUI_PARAM     1
 #define TRIG_MODE_PARAM   2
@@ -88,28 +88,32 @@ typedef struct rp_osc_meas_res_s {
 #define GEN_DC_NORM_2     39
 #define SCALE_CH1         40
 #define SCALE_CH2         41
+#define DC_CAL            42
+#define REQ_TRC           43
+#define DC_CALOUT1        44
+#define DC_CALOUT2        45
 /* AWG parameters */
-#define GEN_TRIG_MODE_CH1 42
-#define GEN_SIG_TYPE_CH1  43
-#define GEN_ENABLE_CH1    44
-#define GEN_SINGLE_CH1    45
-#define GEN_SIG_AMP_CH1   46
-#define GEN_SIG_FREQ_CH1  47
-#define GEN_SIG_DCOFF_CH1 48
-#define GEN_TRIG_MODE_CH2 49
-#define GEN_SIG_TYPE_CH2  50
-#define GEN_ENABLE_CH2    51
-#define GEN_SINGLE_CH2    52
-#define GEN_SIG_AMP_CH2   53
-#define GEN_SIG_FREQ_CH2  54
-#define GEN_SIG_DCOFF_CH2 55
-#define GEN_AWG_REFRESH   56
-#define DC_CAL            57
-#define REQ_TRC           58
+#define GEN_TRIG_MODE_CH1 46
+#define GEN_SIG_TYPE_CH1  47
+#define GEN_ENABLE_CH1    48
+#define GEN_SINGLE_CH1    49
+#define GEN_SIG_AMP_CH1   50
+#define GEN_SIG_FREQ_CH1  51
+#define GEN_SIG_DCOFF_CH1 52
+#define GEN_TRIG_MODE_CH2 53
+#define GEN_SIG_TYPE_CH2  54
+#define GEN_ENABLE_CH2    55
+#define GEN_SINGLE_CH2    56
+#define GEN_SIG_AMP_CH2   57
+#define GEN_SIG_FREQ_CH2  58
+#define GEN_SIG_DCOFF_CH2 59
+#define GEN_AWG_REFRESH   60
+
+
 
 /* Defines from which parameters on are AWG parameters (used in set_param() to
  * trigger update only on needed part - either Oscilloscope or AWG */
-#define PARAMS_AWG_PARAMS 42
+#define PARAMS_AWG_PARAMS 46
 
 /* Output signals */
 #define SIGNAL_LENGTH (1024) /* Must be 2^n! */
@@ -119,7 +123,7 @@ typedef struct rp_osc_meas_res_s {
 /* module entry points */
 int rp_app_init(void);
 int rp_app_exit(void);
-int rp_set_params(rp_app_params_t *p, int len);
+int rp_set_params(rp_app_params_t *p, int len, int internal_flag);
 int rp_get_params(rp_app_params_t **p);
 int rp_get_signals(float ***s, int *sig_num, int *sig_len);
 
@@ -150,5 +154,7 @@ int rp_update_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas);
 
 /* Waveform generator frequency limiter. */
 float rp_gen_limit_freq(float freq, float gen_type);
+
+void dir_gen_set(int ch, int param, int value);
 
 #endif /*  __MAIN_H */
