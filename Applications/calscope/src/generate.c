@@ -433,6 +433,97 @@ void write_data_fpga(uint32_t ch, int mode, int trigger, const int32_t *data,
     }
 }
 
+/*----------------------------------------------------------------------------------*/
+/**
+ * @brief Direct fpga control
+ *
+ * @param[in] ch         Channel number [0, 1].
+ * @param[in] param      Parameter: 0 - state(8 bits LSB), 1 - scale, 2 - offset, 3 - wrap, 4 - start_offs, 5 - step, 6 - state (32 bits - both channels simultaneously controlled)
+ * @param[in] value      Sets the value to be written
+ */
+void dir_gen_fpga_set(uint32_t ch, int param, uint32_t value) 
+{
+  
+   uint32_t state_machine = g_awg_reg->state_machine_conf;
+   
+   switch (param) {
+     case 0:
+       if (ch==0)
+       {
+	state_machine &= ~0xff;
+        g_awg_reg->state_machine_conf = state_machine | (value & 0xff);
+       }
+       else
+       {
+	state_machine &= ~0xff0000;
+        g_awg_reg->state_machine_conf = state_machine | (value & 0xff0000);	 
+       }
+     break; 
+     
+     case 1:
+       if (ch==0)
+       {
+        g_awg_reg->cha_scale_off = (g_awg_reg->cha_scale_off & (~0x3fff)) | (value & 0x3fff);
+       }
+       else
+       {
+        g_awg_reg->chb_scale_off = (g_awg_reg->chb_scale_off & (~0x3fff)) | (value & 0x3fff); 
+       }
+     break;      
+     
+     case 2:
+       if (ch==0)
+       {
+        g_awg_reg->cha_scale_off = (g_awg_reg->cha_scale_off & (0xffff)) | ((value<<16) & 0x3fff0000);
+       }
+       else
+       {
+        g_awg_reg->chb_scale_off = (g_awg_reg->chb_scale_off & (0xffff)) | ((value<<16) & 0x3fff0000); 
+       }
+     break;     
+     
+     case 3:
+       if (ch==0)
+       {
+        g_awg_reg->cha_count_wrap =  (value & 0x3fffffff);
+       }
+       else
+       {
+        g_awg_reg->chb_count_wrap =  (value & 0x3fffffff);
+       }
+     break;          
+
+     case 4:
+       if (ch==0)
+       {
+        g_awg_reg->cha_start_off =  (value & 0x3fffffff);
+       }
+       else
+       {
+        g_awg_reg->chb_start_off =  (value & 0x3fffffff);
+       }
+     break;        
+
+     case 5:
+       if (ch==0)
+       {
+        g_awg_reg->cha_count_step =  (value & 0x3fffffff);
+       }
+       else
+       {
+        g_awg_reg->chb_count_step =  (value & 0x3fffffff);
+       }
+     break;   
+
+     case 6:
+
+        g_awg_reg->state_machine_conf =  value;
+       
+     break;            
+     
+   }
+  
+}
 
 /*----------------------------------------------------------------------------------*/
 /** @brief Initialize specified Signal Shape data buffer and apparent AWG settings
