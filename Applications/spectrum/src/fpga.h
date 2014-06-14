@@ -206,6 +206,9 @@ int spectr_fpga_get_sig_ptr(int **cha_signal, int **chb_signal);
 /* Copies the last acquisition (trig wr. ptr -> curr. wr. ptr) */
 int spectr_fpga_get_signal(double **cha_signal, double **chb_signal);
 
+/* Acquires data when circular buffer running */
+int spectr_fpga_get_live_signal(double **cha_signal, double **chb_signal);
+
 /* Returns signal pointers from the FPGA */
 int spectr_fpga_get_wr_ptr(int *wr_ptr_curr, int *wr_ptr_trig);
 
